@@ -1,46 +1,43 @@
 package telran.currency;
 
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
+
 import telran.currency.service.CurrencyConvertor;
-import telran.view.Item;
 import telran.view.InputOutput;
+import telran.view.Item;
 
 public class CurrencyItems {
-    private static CurrencyConvertor currencyConvertor;
-
-    public static List<Item> getItems(CurrencyConvertor currencyConvertor) {
-        CurrencyItems.currencyConvertor = currencyConvertor;
-        List<Item> items = new ArrayList<>();
-
-        items.add(Item.of("Convert Currency", CurrencyItems::convertCurrency));
-        items.add(Item.of("Show Strongest Currencies", CurrencyItems::showStrongestCurrencies));
-        items.add(Item.of("Show Weakest Currencies", CurrencyItems::showWeakestCurrencies));
-        items.add(Item.ofExit());
-
-        return items;
-    }
-
-    private static void convertCurrency(InputOutput io) {
-        String from = io.readString("Enter currency code to convert from: ");
-        String to = io.readString("Enter currency code to convert to: ");
-        int amount = io.readInt("Enter amount: ", "Invalid number");
-
-        double result = currencyConvertor.convert(from, to, amount);
-        io.writeLine("Converted amount: " + result);
-    }
-
-    private static void showStrongestCurrencies(InputOutput io) {
-        int amount = io.readInt("Enter the number of strongest currencies to display: ", "Invalid number");
-
-        List<String> strongestCurrencies = currencyConvertor.strongestCurrencies(amount);
-        io.writeLine("Strongest currencies: " + strongestCurrencies);
-    }
-
-    private static void showWeakestCurrencies(InputOutput io) {
-        int amount = io.readInt("Enter the number of weakest currencies to display: ", "Invalid number");
-
-        List<String> weakestCurrencies = currencyConvertor.weakestCurrencies(amount);
-        io.writeLine("Weakest currencies: " + weakestCurrencies);
-    }
+private static CurrencyConvertor currencyConvertor;
+private static HashSet<String> codes;
+public static List<Item> getItems(CurrencyConvertor currencyConvertor) {
+	CurrencyItems.currencyConvertor = currencyConvertor;
+	codes = currencyConvertor.getAllCodes();
+	return List.of(
+			Item.of("Strongest Currencies", io -> strongestWeakest(io, "Strongest")),
+			Item.of("Weakest Currencies", io -> strongestWeakest(io, "Weakest")),
+			Item.of("Convert currencies", CurrencyItems::convert),
+			Item.ofExit()
+			);
+}
+private static void strongestWeakest(InputOutput io, String title) {
+	int amount = io.readNumberRange(String.format
+			("Enter amount of top %s currencies",title), "Wrong amount",1,
+			Integer.MAX_VALUE).intValue();
+	if(title.toLowerCase().contains("strongest")) {
+		currencyConvertor.strongestCurrencies(amount).forEach(io::writeLine);
+	} else {
+		currencyConvertor.weakestCurrencies(amount).forEach(io::writeLine);
+	}
+	
+}
+private static void convert(InputOutput io) {
+	String currencyFrom = io.readStringOptions("Enter currency from", 
+			"Wrong currency code", codes);
+	String currencyTo = io.readStringOptions("Enter currency to", 
+			"Wrong currency code", codes);
+	int amount = io.readNumberRange(String.format("Enter amount of %s currency", currencyFrom), "Wrong amount", 1,
+			Integer.MAX_VALUE).intValue();
+	io.writeLine(String.format("%d of %s <=> %f of %s ", amount, currencyFrom,
+			currencyConvertor.convert(currencyFrom, currencyTo, amount), currencyTo));
+}
 }
